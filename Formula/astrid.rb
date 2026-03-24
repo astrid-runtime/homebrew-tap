@@ -27,6 +27,7 @@ class Astrid < Formula
   def install
     bin.install "astrid"
     bin.install "astrid-daemon"
+    bin.install "astrid-build"
   end
 
   test do
