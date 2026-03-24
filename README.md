@@ -22,6 +22,7 @@ brew upgrade astrid
 |--------|---------|
 | `astrid` | CLI frontend — TUI, headless mode, capsule management |
 | `astrid-daemon` | Background kernel process — IPC, VFS, sandbox, audit |
+| `astrid-build` | Capsule compiler — builds Rust, OpenClaw, and MCP capsules |
 
 ## Getting started
 
