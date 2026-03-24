@@ -1,0 +1,89 @@
+name: Update Formula
+
+on:
+  repository_dispatch:
+    types: [release]
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    name: Update astrid formula
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SHA256SUMS from release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          echo "Updating formula to v${VERSION}"
+          gh release download "v${VERSION}" \
+            --repo unicity-astrid/astrid \
+            --pattern "SHA256SUMS.txt" \
+            --dir .
+
+          cat SHA256SUMS.txt
+
+      - name: Update formula
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          SHA_ARM_MAC=$(grep "aarch64-apple-darwin" SHA256SUMS.txt | awk '{print $1}')
+          SHA_X86_MAC=$(grep "x86_64-apple-darwin" SHA256SUMS.txt | awk '{print $1}')
+          SHA_ARM_LINUX=$(grep "aarch64-unknown-linux-gnu" SHA256SUMS.txt | awk '{print $1}')
+          SHA_X86_LINUX=$(grep "x86_64-unknown-linux-gnu" SHA256SUMS.txt | awk '{print $1}')
+
+          cat > Formula/astrid.rb << FORMULA
+          class Astrid < Formula
+            desc "Microkernel for AI agents where agents write their own harness"
+            homepage "https://github.com/unicity-astrid/astrid"
+            version "${VERSION}"
+            license any_of: ["MIT", "Apache-2.0"]
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
+                sha256 "${SHA_ARM_MAC}"
+              else
+                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
+                sha256 "${SHA_X86_MAC}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_ARM_LINUX}"
+              else
+                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_X86_LINUX}"
+              end
+            end
+
+            def install
+              bin.install "astrid"
+              bin.install "astrid-daemon"
+              bin.install "astrid-build"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/astrid --version")
+            end
+          end
+          FORMULA
+
+          # Remove leading whitespace from heredoc indentation
+          sed -i 's/^          //' Formula/astrid.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/astrid.rb
+          git commit -m "chore: bump astrid to v${VERSION}"
+          git push
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
