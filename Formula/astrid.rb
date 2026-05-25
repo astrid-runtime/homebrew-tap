@@ -7,20 +7,20 @@ class Astrid < Formula
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
-      sha256 "1f7c5ca598506a3d7e05042be8d4556f0a040feae5f538f7919077eb58aa9d4c"
+      sha256 "1c7ee06f4b92d40c1141a15d8ee531f37303660104a1e9249d605ccd9d0d2ec4"
     else
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
-      sha256 "34861f7fcab3116e885622886b8e4299fa9938d6069498358ebf2e4bad5c2b53"
+      sha256 "35a78f717d938e5578afe0178ebc3565ab5f22e68e3e3d74b7396e6ff5bf6680"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "09320f74db3e2571bc2bb1525e93beee30baf9e15f3d157fca08214ad5f6fe57"
+      sha256 "19537c2916071029c0705d973ac9ddd345b15648f950d517d9a84959e17b50b9"
     else
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "9fafb656058ab15e6a5fcf40da7be44e43f39787f30916fb7f72e1643ea69ea8"
+      sha256 "ab839e9735d6835ddb6d7ac4bdb89989d2f4044c60f6762cc3af618b5a3cad78"
     end
   end
 
