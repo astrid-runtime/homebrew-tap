@@ -28,6 +28,7 @@ class Astrid < Formula
     bin.install "astrid"
     bin.install "astrid-daemon"
     bin.install "astrid-build"
+    bin.install "astrid-emit"
   end
 
   test do
