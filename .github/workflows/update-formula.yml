@@ -84,6 +84,13 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/astrid.rb
+          # Re-dispatches for an already-published version regenerate an
+          # identical formula; a bare `git commit` would exit 1 on the
+          # empty diff and fail the run.
+          if git diff --cached --quiet; then
+            echo "Formula unchanged (re-dispatch for v${VERSION}); nothing to commit."
+            exit 0
+          fi
           git commit -m "chore: bump astrid to v${VERSION}"
           git push
         env:
