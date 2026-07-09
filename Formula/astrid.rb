@@ -1,26 +1,26 @@
 class Astrid < Formula
   desc "Microkernel for AI agents where agents write their own harness"
   homepage "https://github.com/unicity-astrid/astrid"
-  version "0.9.3"
+  version "0.9.4"
   license any_of: ["MIT", "Apache-2.0"]
 
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
-      sha256 "015a98eea06797714617c6ae2d0ddda3bf74d856cb7cdc3be8fa7dcbbc8ff7bb"
+      sha256 "72f336cb43c40598d43550422883ebdbc23de3604c180128ea365d6c11e95bf5"
     else
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
-      sha256 "fe1bc97e12ef2ac30ff407bb323eeb1929d0bb04eb3d03c8633bb6f8ac56711a"
+      sha256 "2110edd2d5b59d456e2f1ead9fe35e68040d52049d417179ff2a7f6654552b06"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "2a6cf8eb2fdedc1a6cb8af71cc42df4d346bfb7f5495b6255ee66e5298904c5f"
+      sha256 "976014a7ade7b03d7286143440128ba8bae9f73976fba27b6ea77e0b55ae8bfc"
     else
       url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "fbd22c37e6c4ee100bb51edbe3e45d733f7900ea60123facb10e0cc6ae77a4f1"
+      sha256 "2a56f6a0e194a25f4eb72cefc556a4317cfb5f30204a80f2c18a4b7cc2a78f04"
     end
   end
 
