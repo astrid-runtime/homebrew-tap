@@ -5,7 +5,7 @@ Microkernel for AI agents where agents write their own harness.
 ## Install
 
 ```bash
-brew tap unicity-astrid/tap
+brew tap astrid-runtime/tap
 brew install astrid
 ```
 
@@ -34,6 +34,6 @@ astrid -p "hello"    # Headless single-prompt mode
 
 ## Links
 
-- [Source](https://github.com/unicity-astrid/astrid)
-- [Documentation](https://github.com/unicity-astrid/astrid#readme)
-- [Releases](https://github.com/unicity-astrid/astrid/releases)
+- [Source](https://github.com/astrid-runtime/astrid)
+- [Documentation](https://github.com/astrid-runtime/astrid#readme)
+- [Releases](https://github.com/astrid-runtime/astrid/releases)
