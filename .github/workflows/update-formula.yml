@@ -75,7 +75,10 @@ jobs:
             brew info --json=v2 "$tap/astrid" |
               ruby -rjson -e 'puts JSON.parse(STDIN.read).fetch("formulae").first.fetch("versions").fetch("stable")'
           )
-          [[ "$actual_version" == "$VERSION" ]]
+          if [[ "$actual_version" != "$VERSION" ]]; then
+            echo "::error::Homebrew inferred version '$actual_version'; expected '$VERSION'." >&2
+            exit 1
+          fi
           brew audit --strict "$tap/astrid"
 
       - name: Detect formula change

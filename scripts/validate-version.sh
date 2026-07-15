@@ -8,7 +8,7 @@ fi
 
 version="$1"
 numeric_identifier='(0|[1-9][0-9]*)'
-prerelease="(alpha|beta|rc)(\.${numeric_identifier})?"
+prerelease="(alpha(\.${numeric_identifier})?|(beta|rc)\.${numeric_identifier})"
 version_pattern="^${numeric_identifier}\.${numeric_identifier}\.${numeric_identifier}(-${prerelease})?$"
 
 if [[ ! "$version" =~ $version_pattern ]]; then
