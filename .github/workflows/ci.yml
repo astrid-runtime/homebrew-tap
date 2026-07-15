@@ -1,7 +1,9 @@
-name: Pull Request CI
+name: Tap CI
 
 on:
   pull_request:
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -27,6 +29,9 @@ jobs:
 
       - name: Test formula generation
         run: test/test-formula-generation.sh
+
+      - name: Test signed commit payload
+        run: test/test-create-signed-commit-payload.sh
 
       - name: Validate generated formula with Homebrew
         run: test/test-generated-formula-homebrew.sh
