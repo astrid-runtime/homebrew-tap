@@ -22,10 +22,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ github.event.client_payload.version }}
         run: |
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid release version: $VERSION" >&2
-            exit 1
-          fi
+          scripts/validate-version.sh "$VERSION"
 
           echo "Updating formula to v${VERSION}"
           mkdir -p artifacts
@@ -52,65 +49,10 @@ jobs:
         env:
           VERSION: ${{ github.event.client_payload.version }}
         run: |
-          checksum_for() {
-            local asset="$1"
-            local matches
-            matches=$(awk -v asset="$asset" '$2 == asset { print $1 }' artifacts/SHA256SUMS.txt)
-            if [ "$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l)" -ne 1 ] \
-              || [[ ! "$matches" =~ ^[0-9a-f]{64}$ ]]; then
-              echo "Expected exactly one lowercase SHA-256 entry for $asset" >&2
-              exit 1
-            fi
-            printf '%s' "$matches"
-          }
-
-          SHA_ARM_MAC=$(checksum_for "astrid-${VERSION}-aarch64-apple-darwin.tar.gz")
-          SHA_X86_MAC=$(checksum_for "astrid-${VERSION}-x86_64-apple-darwin.tar.gz")
-          SHA_ARM_LINUX=$(checksum_for "astrid-${VERSION}-aarch64-unknown-linux-gnu.tar.gz")
-          SHA_X86_LINUX=$(checksum_for "astrid-${VERSION}-x86_64-unknown-linux-gnu.tar.gz")
-
-          cat > Formula/astrid.rb << FORMULA
-          class Astrid < Formula
-            desc "Microkernel for AI agents where agents write their own harness"
-            homepage "https://github.com/astrid-runtime/astrid"
-            version "${VERSION}"
-            license any_of: ["MIT", "Apache-2.0"]
-
-            on_macos do
-              if Hardware::CPU.arm?
-                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
-                sha256 "${SHA_ARM_MAC}"
-              else
-                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
-                sha256 "${SHA_X86_MAC}"
-              end
-            end
-
-            on_linux do
-              if Hardware::CPU.arm?
-                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
-                sha256 "${SHA_ARM_LINUX}"
-              else
-                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
-                sha256 "${SHA_X86_LINUX}"
-              end
-            end
-
-            def install
-              bin.install "astrid"
-              bin.install "astrid-daemon"
-              bin.install "astrid-build"
-              bin.install "astrid-emit"
-            end
-
-            test do
-              assert_match version.to_s, shell_output("#{bin}/astrid --version")
-            end
-          end
-          FORMULA
-
-          # Remove leading whitespace from heredoc indentation
-          sed -i 's/^          //' Formula/astrid.rb
+          scripts/generate-formula.sh \
+            "$VERSION" \
+            artifacts/SHA256SUMS.txt \
+            Formula/astrid.rb
 
       - name: Commit and push
         run: |

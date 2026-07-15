@@ -23,13 +23,14 @@ brew upgrade astrid
 | `astrid` | CLI frontend — TUI, headless mode, capsule management |
 | `astrid-daemon` | Background kernel process — IPC, VFS, sandbox, audit |
 | `astrid-build` | Capsule compiler — builds Rust, OpenClaw, and MCP capsules |
+| `astrid-emit` | Event client — publishes requests and inspects runtime responses |
 
 ## Getting started
 
 ```bash
-astrid init          # Install the default distro and capsules
-astrid               # Start an interactive session
-astrid -p "hello"    # Headless single-prompt mode
+astrid init --distro @yourorg/your-distro  # Install an explicit distribution
+astrid                                    # Start an interactive session
+astrid -p "hello"                         # Headless single-prompt mode
 ```
 
 ## Links
