@@ -12,53 +12,89 @@ jobs:
     name: Update astrid formula
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - name: Download SHA256SUMS from release
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Download and verify release archives
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ github.event.client_payload.version }}
         run: |
-          echo "Updating formula to v${VERSION}"
-          gh release download "v${VERSION}" \
-            --repo unicity-astrid/astrid \
-            --pattern "SHA256SUMS.txt" \
-            --dir .
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release version: $VERSION" >&2
+            exit 1
+          fi
 
-          cat SHA256SUMS.txt
+          echo "Updating formula to v${VERSION}"
+          mkdir -p artifacts
+
+          REPOSITORY="astrid-runtime/astrid"
+          TAG="v${VERSION}"
+          CERTIFICATE_IDENTITY="https://github.com/${REPOSITORY}/.github/workflows/release.yml@refs/tags/${TAG}"
+          OIDC_ISSUER="https://token.actions.githubusercontent.com"
+          TARGETS=(
+            "aarch64-apple-darwin"
+            "x86_64-apple-darwin"
+            "aarch64-unknown-linux-gnu"
+            "x86_64-unknown-linux-gnu"
+          )
+
+          for target in "${TARGETS[@]}"; do
+            asset="astrid-${VERSION}-${target}.tar.gz"
+            gh release download "$TAG" \
+              --repo "$REPOSITORY" \
+              --pattern "$asset" \
+              --pattern "${asset}.sigstore.json" \
+              --dir artifacts
+
+            test -s "artifacts/$asset"
+            test -s "artifacts/${asset}.sigstore.json"
+            cosign verify-blob \
+              --bundle "artifacts/${asset}.sigstore.json" \
+              --certificate-identity "$CERTIFICATE_IDENTITY" \
+              --certificate-oidc-issuer "$OIDC_ISSUER" \
+              "artifacts/$asset"
+          done
+
+          # Astrid's release manifest is BLAKE3. Homebrew's formula DSL still
+          # requires SHA-256, so derive those values locally only after each
+          # archive has passed Sigstore identity verification.
+          sha256sum artifacts/*.tar.gz
 
       - name: Update formula
         env:
           VERSION: ${{ github.event.client_payload.version }}
         run: |
-          SHA_ARM_MAC=$(grep "aarch64-apple-darwin" SHA256SUMS.txt | awk '{print $1}')
-          SHA_X86_MAC=$(grep "x86_64-apple-darwin" SHA256SUMS.txt | awk '{print $1}')
-          SHA_ARM_LINUX=$(grep "aarch64-unknown-linux-gnu" SHA256SUMS.txt | awk '{print $1}')
-          SHA_X86_LINUX=$(grep "x86_64-unknown-linux-gnu" SHA256SUMS.txt | awk '{print $1}')
+          SHA_ARM_MAC=$(sha256sum "artifacts/astrid-${VERSION}-aarch64-apple-darwin.tar.gz" | awk '{print $1}')
+          SHA_X86_MAC=$(sha256sum "artifacts/astrid-${VERSION}-x86_64-apple-darwin.tar.gz" | awk '{print $1}')
+          SHA_ARM_LINUX=$(sha256sum "artifacts/astrid-${VERSION}-aarch64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
+          SHA_X86_LINUX=$(sha256sum "artifacts/astrid-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
 
           cat > Formula/astrid.rb << FORMULA
           class Astrid < Formula
             desc "Microkernel for AI agents where agents write their own harness"
-            homepage "https://github.com/unicity-astrid/astrid"
+            homepage "https://github.com/astrid-runtime/astrid"
             version "${VERSION}"
             license any_of: ["MIT", "Apache-2.0"]
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
+                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-apple-darwin.tar.gz"
                 sha256 "${SHA_ARM_MAC}"
               else
-                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
+                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-apple-darwin.tar.gz"
                 sha256 "${SHA_X86_MAC}"
               end
             end
 
             on_linux do
               if Hardware::CPU.arm?
-                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-aarch64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_ARM_LINUX}"
               else
-                url "https://github.com/unicity-astrid/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/astrid-runtime/astrid/releases/download/v#{version}/astrid-#{version}-x86_64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_X86_LINUX}"
               end
             end
