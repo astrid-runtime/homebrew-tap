@@ -28,6 +28,9 @@ jobs:
       - name: Test formula generation
         run: test/test-formula-generation.sh
 
+      - name: Validate generated formula with Homebrew
+        run: test/test-generated-formula-homebrew.sh
+
       - name: Validate committed formula
         run: |
           ruby -c Formula/astrid.rb

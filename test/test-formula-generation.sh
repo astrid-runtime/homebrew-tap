@@ -28,11 +28,25 @@ expect_generation_failure() {
   fi
 }
 
-for version in 1.2.3 1.2.3-rc.1 1.2.3+build.7 1.2.3-rc.1+build.7; do
+for version in 1.2.3 2026.1.0 1.2.3-alpha 1.2.3-rc.1 1.2.3-alpha-beta.1; do
   "${repo_root}/scripts/validate-version.sh" "$version"
 done
 
-for version in v1.2.3 1.2 1.2.3/asset ../1.2.3 1.2.3- 1.2.3+; do
+for version in \
+  v1.2.3 \
+  1.2 \
+  1.2.3/asset \
+  ../1.2.3 \
+  1.2.3- \
+  1.2.3-. \
+  1.2.3-.. \
+  1.2.3-rc..1 \
+  01.2.3 \
+  1.02.3 \
+  1.2.03 \
+  1.2.3+ \
+  1.2.3+build.7 \
+  1.2.3-rc.1+build.7; do
   expect_version_failure "$version"
 done
 

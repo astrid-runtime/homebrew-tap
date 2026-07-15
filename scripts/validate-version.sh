@@ -7,7 +7,9 @@ if [[ $# -ne 1 ]]; then
 fi
 
 version="$1"
-version_pattern='^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+numeric_identifier='(0|[1-9][0-9]*)'
+prerelease='[0-9A-Za-z]+([.-][0-9A-Za-z]+)*'
+version_pattern="^${numeric_identifier}\.${numeric_identifier}\.${numeric_identifier}(-${prerelease})?$"
 
 if [[ ! "$version" =~ $version_pattern ]]; then
   echo "Invalid release version: $version" >&2
