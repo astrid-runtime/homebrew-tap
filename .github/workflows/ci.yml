@@ -1,0 +1,59 @@
+name: Tap CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main commit this run must validate
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate tap
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Bind dispatched validation to its commit
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$GITHUB_SHA" == "$EXPECTED_SHA" ]]
+
+      - name: Install validation tools
+        run: brew install actionlint shellcheck
+
+      - name: Check workflows
+        run: actionlint
+
+      - name: Check shell scripts
+        run: shellcheck scripts/*.sh test/*.sh
+
+      - name: Test formula generation
+        run: test/test-formula-generation.sh
+
+      - name: Test signed commit payload
+        run: test/test-create-signed-commit-payload.sh
+
+      - name: Validate generated formula with Homebrew
+        run: test/test-generated-formula-homebrew.sh
+
+      - name: Validate committed formula
+        run: |
+          ruby -c Formula/astrid.rb
+          brew style Formula/astrid.rb
+          brew tap-new --no-git astrid-ci/tap
+          cp Formula/astrid.rb "$(brew --repository astrid-ci/tap)/Formula/astrid.rb"
+          brew audit --strict astrid-ci/tap/astrid
