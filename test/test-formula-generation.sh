@@ -28,7 +28,7 @@ expect_generation_failure() {
   fi
 }
 
-for version in 1.2.3 2026.1.0 1.2.3-alpha 1.2.3-rc.1 1.2.3-alpha-beta.1 1.2.3-0.3.7; do
+for version in 1.2.3 2026.1.0 1.2.3-alpha 1.2.3-alpha.1 1.2.3-beta.1 1.2.3-rc.1; do
   "${repo_root}/scripts/validate-version.sh" "$version"
 done
 
@@ -42,6 +42,13 @@ for version in \
   1.2.3-.. \
   1.2.3-rc..1 \
   1.2.3-01 \
+  1.2.3-0 \
+  1.2.3-1.2 \
+  1.2.3-alpha-beta \
+  1.2.3-alpha-beta.1 \
+  1.2.3-alpha.1.2 \
+  1.2.3-dev.20260715 \
+  1.2.3-nightly.20260715 \
   01.2.3 \
   1.02.3 \
   1.2.03 \

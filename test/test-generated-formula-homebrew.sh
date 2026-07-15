@@ -14,7 +14,7 @@ trap cleanup EXIT
 brew untap "$tap" >/dev/null 2>&1 || true
 brew tap-new --no-git "$tap" >/dev/null
 
-for version in 1.2.3 1.2.3-rc.1; do
+for version in 1.2.3 1.2.3-alpha 1.2.3-alpha.1 1.2.3-beta.1 1.2.3-rc.1; do
   manifest="${tmpdir}/SHA256SUMS-${version}.txt"
   sed "s/astrid-1.2.3-/astrid-${version}-/g" \
     "${repo_root}/test/fixtures/valid.txt" > "$manifest"
