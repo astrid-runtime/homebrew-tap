@@ -17,7 +17,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
-      - name: Download and verify release archives
+      - name: Download and verify release checksum manifest
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ github.event.client_payload.version }}
@@ -34,43 +34,40 @@ jobs:
           TAG="v${VERSION}"
           CERTIFICATE_IDENTITY="https://github.com/${REPOSITORY}/.github/workflows/release.yml@refs/tags/${TAG}"
           OIDC_ISSUER="https://token.actions.githubusercontent.com"
-          TARGETS=(
-            "aarch64-apple-darwin"
-            "x86_64-apple-darwin"
-            "aarch64-unknown-linux-gnu"
-            "x86_64-unknown-linux-gnu"
-          )
+          gh release download "$TAG" \
+            --repo "$REPOSITORY" \
+            --pattern SHA256SUMS.txt \
+            --pattern SHA256SUMS.txt.sigstore.json \
+            --dir artifacts
 
-          for target in "${TARGETS[@]}"; do
-            asset="astrid-${VERSION}-${target}.tar.gz"
-            gh release download "$TAG" \
-              --repo "$REPOSITORY" \
-              --pattern "$asset" \
-              --pattern "${asset}.sigstore.json" \
-              --dir artifacts
-
-            test -s "artifacts/$asset"
-            test -s "artifacts/${asset}.sigstore.json"
-            cosign verify-blob \
-              --bundle "artifacts/${asset}.sigstore.json" \
-              --certificate-identity "$CERTIFICATE_IDENTITY" \
-              --certificate-oidc-issuer "$OIDC_ISSUER" \
-              "artifacts/$asset"
-          done
-
-          # Astrid's release manifest is BLAKE3. Homebrew's formula DSL still
-          # requires SHA-256, so derive those values locally only after each
-          # archive has passed Sigstore identity verification.
-          sha256sum artifacts/*.tar.gz
+          test -s artifacts/SHA256SUMS.txt
+          test -s artifacts/SHA256SUMS.txt.sigstore.json
+          cosign verify-blob \
+            --bundle artifacts/SHA256SUMS.txt.sigstore.json \
+            --certificate-identity "$CERTIFICATE_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            artifacts/SHA256SUMS.txt
 
       - name: Update formula
         env:
           VERSION: ${{ github.event.client_payload.version }}
         run: |
-          SHA_ARM_MAC=$(sha256sum "artifacts/astrid-${VERSION}-aarch64-apple-darwin.tar.gz" | awk '{print $1}')
-          SHA_X86_MAC=$(sha256sum "artifacts/astrid-${VERSION}-x86_64-apple-darwin.tar.gz" | awk '{print $1}')
-          SHA_ARM_LINUX=$(sha256sum "artifacts/astrid-${VERSION}-aarch64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
-          SHA_X86_LINUX=$(sha256sum "artifacts/astrid-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" | awk '{print $1}')
+          checksum_for() {
+            local asset="$1"
+            local matches
+            matches=$(awk -v asset="$asset" '$2 == asset { print $1 }' artifacts/SHA256SUMS.txt)
+            if [ "$(printf '%s\n' "$matches" | sed '/^$/d' | wc -l)" -ne 1 ] \
+              || [[ ! "$matches" =~ ^[0-9a-f]{64}$ ]]; then
+              echo "Expected exactly one lowercase SHA-256 entry for $asset" >&2
+              exit 1
+            fi
+            printf '%s' "$matches"
+          }
+
+          SHA_ARM_MAC=$(checksum_for "astrid-${VERSION}-aarch64-apple-darwin.tar.gz")
+          SHA_X86_MAC=$(checksum_for "astrid-${VERSION}-x86_64-apple-darwin.tar.gz")
+          SHA_ARM_LINUX=$(checksum_for "astrid-${VERSION}-aarch64-unknown-linux-gnu.tar.gz")
+          SHA_X86_LINUX=$(checksum_for "astrid-${VERSION}-x86_64-unknown-linux-gnu.tar.gz")
 
           cat > Formula/astrid.rb << FORMULA
           class Astrid < Formula
