@@ -51,7 +51,7 @@ jq -n \
       input: {
         branch: {
           repositoryNameWithOwner: $repository,
-          refName: "refs/heads/main"
+          branchName: "main"
         },
         expectedHeadOid: $head,
         message: { headline: $headline },
