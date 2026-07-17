@@ -31,7 +31,7 @@ jq -e \
   '.variables.input == {
     branch: {
       repositoryNameWithOwner: "astrid-runtime/homebrew-tap",
-      refName: "refs/heads/main"
+      branchName: "main"
     },
     expectedHeadOid: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     message: { headline: "chore: follow Astrid stable v1.2.3-rc.1" },
