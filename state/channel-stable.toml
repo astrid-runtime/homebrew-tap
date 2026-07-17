@@ -3,46 +3,46 @@ kind = "astrid-channel"
 product = "astrid-runtime"
 repository = "astrid-runtime/astrid"
 channel = "stable"
-generation = 1
-published-at = "2026-07-17T07:56:42Z"
-expires-at = "2026-08-16T07:56:42Z"
+generation = 2
+published-at = "2026-07-17T16:50:07Z"
+expires-at = "2026-08-16T16:50:07Z"
 
 [release]
-version = "0.10.0"
-tag = "v0.10.0"
-source-commit = "7d3f0c2e26254e4ea78c07e4a78cdb36e6e56ceb"
-metadata-asset = "astrid-0.10.0-release.toml"
-metadata-blake3 = "94989ed2a385b274b118a8b1b92aca751e2bcdb9b0e1c285dcd3c1b0145f3833"
-release-workflow-identity = "https://github.com/astrid-runtime/astrid/.github/workflows/release.yml@refs/tags/v0.10.0"
+version = "0.10.1"
+tag = "v0.10.1"
+source-commit = "4771bab3c33d1bce53186e40d01cf014e2dce666"
+metadata-asset = "astrid-0.10.1-release.toml"
+metadata-blake3 = "58749c2f256e78183b68040fbb8f49e8dea8810f03c19efc6d3aff2d29f6425c"
+release-workflow-identity = "https://github.com/astrid-runtime/astrid/.github/workflows/release.yml@refs/tags/v0.10.1"
 
 [[targets]]
 triple = "aarch64-apple-darwin"
-asset = "astrid-0.10.0-aarch64-apple-darwin.tar.gz"
-size = 40667368
-blake3 = "1f17d9dda31839d4f1c3ee982cde60171149d4f2121821c86ba718245ad10d41"
-sha256 = "82a040d744d1f64a5b3247473df519a6554229f2680f5bbc372eef25f2b47984"
-sigstore-bundle = "astrid-0.10.0-aarch64-apple-darwin.tar.gz.sigstore.json"
+asset = "astrid-0.10.1-aarch64-apple-darwin.tar.gz"
+size = 40666367
+blake3 = "476d00bcea29857722670555efb949f6356dbfb2df15e5ad1b820a427886186a"
+sha256 = "3ac6a8a610b3b829964a665c2dd0063d3a66c7eb49290f7907e7ff4c2ed239b8"
+sigstore-bundle = "astrid-0.10.1-aarch64-apple-darwin.tar.gz.sigstore.json"
 
 [[targets]]
 triple = "aarch64-unknown-linux-gnu"
-asset = "astrid-0.10.0-aarch64-unknown-linux-gnu.tar.gz"
-size = 46245234
-blake3 = "894387ec099f6ba9b0eaac580861eabc144d7be9e207586580902f794b34b970"
-sha256 = "bfe7b5b82c00014f3c4e9757591e19788be997e07cfc8a29aea834c38b9b716d"
-sigstore-bundle = "astrid-0.10.0-aarch64-unknown-linux-gnu.tar.gz.sigstore.json"
+asset = "astrid-0.10.1-aarch64-unknown-linux-gnu.tar.gz"
+size = 46238528
+blake3 = "e25dbf3b98e7c68574a2de0469904f116b3bdc5c753660f612d55111d7d8be6d"
+sha256 = "74f06cbec1ff7b4e38dff34bff206f2a8a32b01f74fa9066cad315c923b84542"
+sigstore-bundle = "astrid-0.10.1-aarch64-unknown-linux-gnu.tar.gz.sigstore.json"
 
 [[targets]]
 triple = "x86_64-apple-darwin"
-asset = "astrid-0.10.0-x86_64-apple-darwin.tar.gz"
-size = 43978543
-blake3 = "e4c6bdcc7c52e0acdaeab9381020fbbf5a13e335b94d8d0ff4f49bdd3a3b0d9e"
-sha256 = "23a06c4e5618a812bb520fe2e2e61cf61bad9db880831b3ba9860be6275acebb"
-sigstore-bundle = "astrid-0.10.0-x86_64-apple-darwin.tar.gz.sigstore.json"
+asset = "astrid-0.10.1-x86_64-apple-darwin.tar.gz"
+size = 43948994
+blake3 = "a16b3f06a35c1888f4e810d620f409609e34e6dc4c3a61d0d7ab4bde21aa5e99"
+sha256 = "9f526be64e8b3b3ccb1ccd84770289d7eecf53acb3ffd99f85f4d4c95ad38aff"
+sigstore-bundle = "astrid-0.10.1-x86_64-apple-darwin.tar.gz.sigstore.json"
 
 [[targets]]
 triple = "x86_64-unknown-linux-gnu"
-asset = "astrid-0.10.0-x86_64-unknown-linux-gnu.tar.gz"
-size = 48069400
-blake3 = "00f2d21e5fef95b3b0e5189240f869ff0d49ccc620ecb70e339e9b450ced60dd"
-sha256 = "a9f442928480725a92b8937c47228cbf853ba1c40836790f888deaad347eff63"
-sigstore-bundle = "astrid-0.10.0-x86_64-unknown-linux-gnu.tar.gz.sigstore.json"
+asset = "astrid-0.10.1-x86_64-unknown-linux-gnu.tar.gz"
+size = 48036715
+blake3 = "543e552031db9ea3bb5e5da28285079319cdd72369a7f2849881cb52c0dd86e4"
+sha256 = "3d22a279a3cbbafd20a95af86526e6e5986e30c93391e113d0c03eddda6e001d"
+sigstore-bundle = "astrid-0.10.1-x86_64-unknown-linux-gnu.tar.gz.sigstore.json"

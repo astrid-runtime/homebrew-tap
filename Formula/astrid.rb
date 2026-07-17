@@ -5,21 +5,21 @@ class Astrid < Formula
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.0/astrid-0.10.0-aarch64-apple-darwin.tar.gz"
-      sha256 "82a040d744d1f64a5b3247473df519a6554229f2680f5bbc372eef25f2b47984"
+      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.1/astrid-0.10.1-aarch64-apple-darwin.tar.gz"
+      sha256 "3ac6a8a610b3b829964a665c2dd0063d3a66c7eb49290f7907e7ff4c2ed239b8"
     else
-      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.0/astrid-0.10.0-x86_64-apple-darwin.tar.gz"
-      sha256 "23a06c4e5618a812bb520fe2e2e61cf61bad9db880831b3ba9860be6275acebb"
+      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.1/astrid-0.10.1-x86_64-apple-darwin.tar.gz"
+      sha256 "9f526be64e8b3b3ccb1ccd84770289d7eecf53acb3ffd99f85f4d4c95ad38aff"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.0/astrid-0.10.0-aarch64-unknown-linux-gnu.tar.gz"
-      sha256 "bfe7b5b82c00014f3c4e9757591e19788be997e07cfc8a29aea834c38b9b716d"
+      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.1/astrid-0.10.1-aarch64-unknown-linux-gnu.tar.gz"
+      sha256 "74f06cbec1ff7b4e38dff34bff206f2a8a32b01f74fa9066cad315c923b84542"
     else
-      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.0/astrid-0.10.0-x86_64-unknown-linux-gnu.tar.gz"
-      sha256 "a9f442928480725a92b8937c47228cbf853ba1c40836790f888deaad347eff63"
+      url "https://github.com/astrid-runtime/astrid/releases/download/v0.10.1/astrid-0.10.1-x86_64-unknown-linux-gnu.tar.gz"
+      sha256 "3d22a279a3cbbafd20a95af86526e6e5986e30c93391e113d0c03eddda6e001d"
     end
   end
 
