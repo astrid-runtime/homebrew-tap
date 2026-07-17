@@ -1,63 +1,216 @@
 name: Update Formula
 
 on:
-  repository_dispatch:
-    types: [release]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
   actions: write
 
+concurrency:
+  group: update-astrid-stable-formula
+  cancel-in-progress: false
+
 jobs:
   update:
-    name: Update astrid formula
+    name: Follow signed Astrid stable
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-15
+    timeout-minutes: 20
     steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
-      - name: Download and verify release checksum manifest
+      - name: Download and authenticate signed stable pointer
+        id: channel
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          REPOSITORY=astrid-runtime/astrid
+          CHANNEL_TAG=channel-stable
+          STATE_POINTER=state/channel-stable.toml
+          STATE_BUNDLE=state/channel-stable.toml.sigstore.json
+          PROMOTION_IDENTITY="https://github.com/${REPOSITORY}/.github/workflows/promote-channel.yml@refs/heads/main"
+          OIDC_ISSUER=https://token.actions.githubusercontent.com
+
+          state_exists=false
+          if [[ -e "$STATE_POINTER" || -L "$STATE_POINTER" || \
+                -e "$STATE_BUNDLE" || -L "$STATE_BUNDLE" ]]; then
+            [[ -f "$STATE_POINTER" && ! -L "$STATE_POINTER" ]]
+            [[ -f "$STATE_BUNDLE" && ! -L "$STATE_BUNDLE" ]]
+            state_exists=true
+          fi
+
+          status=$(curl --silent --show-error \
+            --output "$RUNNER_TEMP/channel-release.json" \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPOSITORY}/releases/tags/${CHANNEL_TAG}")
+          if [[ "$status" == 404 && "$state_exists" == false ]]; then
+            echo "Astrid has not bootstrapped its stable channel; nothing to update."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$status" == 200 ]] || {
+            echo "Could not read Astrid stable channel: HTTP ${status}" >&2
+            exit 1
+          }
+          jq -e '
+            .tag_name == "channel-stable" and
+            .draft == false and
+            .prerelease == true and
+            .immutable == false
+          ' "$RUNNER_TEMP/channel-release.json" >/dev/null
+
+          pointer_count=$(jq '[.assets[] | select(.name == "channel.toml")] | length' \
+            "$RUNNER_TEMP/channel-release.json")
+          bundle_count=$(jq '[.assets[] | select(.name == "channel.toml.sigstore.json")] | length' \
+            "$RUNNER_TEMP/channel-release.json")
+          if [[ "$pointer_count" == 0 && "$bundle_count" == 0 && "$state_exists" == false ]]; then
+            echo "Astrid stable has not been promoted yet; nothing to update."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [[ "$pointer_count" == 1 && "$bundle_count" == 1 ]]
+          jq -e '
+            [.assets[] | select(
+              .name == "channel.toml" or
+              .name == "channel.toml.sigstore.json"
+            )] | all(.state == "uploaded" and .size > 0)
+          ' "$RUNNER_TEMP/channel-release.json" >/dev/null
+
+          mkdir -p artifacts/channel
+          gh release download "$CHANNEL_TAG" \
+            --repo "$REPOSITORY" \
+            --dir artifacts/channel \
+            --pattern channel.toml \
+            --pattern channel.toml.sigstore.json
+          cosign verify-blob \
+            --bundle artifacts/channel/channel.toml.sigstore.json \
+            --certificate-identity "$PROMOTION_IDENTITY" \
+            --certificate-oidc-issuer "$OIDC_ISSUER" \
+            --use-signed-timestamps \
+            artifacts/channel/channel.toml
+
+          current_args=()
+          if [[ "$state_exists" == true ]]; then
+            cosign verify-blob \
+              --bundle "$STATE_BUNDLE" \
+              --certificate-identity "$PROMOTION_IDENTITY" \
+              --certificate-oidc-issuer "$OIDC_ISSUER" \
+              --use-signed-timestamps \
+              "$STATE_POINTER"
+            current_args=(--current-pointer "$STATE_POINTER")
+          fi
+
+          CHANNEL_NOW=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          python3 scripts/resolve-stable-channel.py \
+            --pointer artifacts/channel/channel.toml \
+            "${current_args[@]}" \
+            --now "$CHANNEL_NOW" \
+            --output "$RUNNER_TEMP/stable-channel.json"
+          VERSION=$(jq -er .version "$RUNNER_TEMP/stable-channel.json")
+          TAG=$(jq -er .tag "$RUNNER_TEMP/stable-channel.json")
+          STATE_CHANGED=$(jq -er '."state-changed"' "$RUNNER_TEMP/stable-channel.json")
+          echo "Following authenticated Astrid stable ${TAG}."
+          {
+            echo "available=true"
+            echo "version=$VERSION"
+            echo "tag=$TAG"
+            echo "state_changed=$STATE_CHANGED"
+          } >> "$GITHUB_OUTPUT"
+          echo "CHANNEL_NOW=$CHANNEL_NOW" >> "$GITHUB_ENV"
+
+      - name: Download and verify release checksum manifest
+        if: steps.channel.outputs.available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.channel.outputs.version }}
+          TAG: ${{ steps.channel.outputs.tag }}
         run: |
           scripts/validate-version.sh "$VERSION"
+          [[ "$TAG" == "v${VERSION}" ]]
 
-          echo "Updating formula to v${VERSION}"
-          mkdir -p artifacts
+          REPOSITORY=astrid-runtime/astrid
+          RELEASE_IDENTITY="https://github.com/${REPOSITORY}/.github/workflows/release.yml@refs/tags/${TAG}"
+          OIDC_ISSUER=https://token.actions.githubusercontent.com
+          gh api "repos/${REPOSITORY}/releases/tags/${TAG}" \
+            | jq -e --arg tag "$TAG" '
+              .tag_name == $tag and
+              .draft == false and
+              .prerelease == false and
+              .immutable == true and
+              .published_at != null
+            ' >/dev/null
 
-          REPOSITORY="astrid-runtime/astrid"
-          TAG="v${VERSION}"
-          CERTIFICATE_IDENTITY="https://github.com/${REPOSITORY}/.github/workflows/release.yml@refs/tags/${TAG}"
-          OIDC_ISSUER="https://token.actions.githubusercontent.com"
+          mkdir -p artifacts/release
           gh release download "$TAG" \
             --repo "$REPOSITORY" \
             --pattern SHA256SUMS.txt \
             --pattern SHA256SUMS.txt.sigstore.json \
-            --dir artifacts
-
-          test -s artifacts/SHA256SUMS.txt
-          test -s artifacts/SHA256SUMS.txt.sigstore.json
+            --dir artifacts/release
+          test -s artifacts/release/SHA256SUMS.txt
+          test -s artifacts/release/SHA256SUMS.txt.sigstore.json
           cosign verify-blob \
-            --bundle artifacts/SHA256SUMS.txt.sigstore.json \
-            --certificate-identity "$CERTIFICATE_IDENTITY" \
+            --bundle artifacts/release/SHA256SUMS.txt.sigstore.json \
+            --certificate-identity "$RELEASE_IDENTITY" \
             --certificate-oidc-issuer "$OIDC_ISSUER" \
-            artifacts/SHA256SUMS.txt
+            --use-signed-timestamps \
+            artifacts/release/SHA256SUMS.txt
+
+          current_args=()
+          if [[ -f state/channel-stable.toml ]]; then
+            current_args=(--current-pointer state/channel-stable.toml)
+          fi
+          python3 scripts/resolve-stable-channel.py \
+            --pointer artifacts/channel/channel.toml \
+            --checksums artifacts/release/SHA256SUMS.txt \
+            "${current_args[@]}" \
+            --now "$CHANNEL_NOW" \
+            --output "$RUNNER_TEMP/verified-stable-channel.json"
+          jq -e \
+            --arg version "$VERSION" \
+            --arg tag "$TAG" \
+            '.version == $version and .tag == $tag' \
+            "$RUNNER_TEMP/verified-stable-channel.json" >/dev/null
+
+          if [[ "${{ steps.channel.outputs.state_changed }}" == true ]]; then
+            mkdir -p state
+            cp artifacts/channel/channel.toml state/channel-stable.toml
+            cp artifacts/channel/channel.toml.sigstore.json \
+              state/channel-stable.toml.sigstore.json
+          fi
 
       - name: Update formula
+        if: steps.channel.outputs.available == 'true'
         env:
-          VERSION: ${{ github.event.client_payload.version }}
+          VERSION: ${{ steps.channel.outputs.version }}
         run: |
           scripts/generate-formula.sh \
             "$VERSION" \
-            artifacts/SHA256SUMS.txt \
+            artifacts/release/SHA256SUMS.txt \
             Formula/astrid.rb
 
       - name: Validate generated formula with Homebrew
+        if: steps.channel.outputs.available == 'true'
         env:
-          VERSION: ${{ github.event.client_payload.version }}
+          VERSION: ${{ steps.channel.outputs.version }}
         run: |
           tap=astrid-release-generated/tap
           cleanup() {
@@ -81,44 +234,51 @@ jobs:
           fi
           brew audit --strict "$tap/astrid"
 
-      - name: Detect formula change
-        id: formula
+      - name: Detect stable state change
+        if: steps.channel.outputs.available == 'true'
+        id: stable
+        env:
+          VERSION: ${{ steps.channel.outputs.version }}
         run: |
-          if git diff --quiet -- Formula/astrid.rb; then
+          if [[ -z "$(git status --porcelain -- \
+            Formula/astrid.rb \
+            state/channel-stable.toml \
+            state/channel-stable.toml.sigstore.json)" ]]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "Formula unchanged (re-dispatch for v${VERSION}); nothing to commit."
+            echo "Formula and accepted stable state already match v${VERSION}."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
-        env:
-          VERSION: ${{ github.event.client_payload.version }}
 
-      - name: Publish verified formula commit
-        if: steps.formula.outputs.changed == 'true'
+      - name: Publish verified formula and stable state
+        if: steps.stable.outputs.changed == 'true'
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ github.event.client_payload.version }}
+          VERSION: ${{ steps.channel.outputs.version }}
         run: |
           scripts/create-signed-commit-payload.sh \
             "$GITHUB_REPOSITORY" \
             "$GITHUB_SHA" \
             "$VERSION" \
-            Formula/astrid.rb > "$RUNNER_TEMP/commit-formula.json"
-          gh api graphql --input "$RUNNER_TEMP/commit-formula.json" \
-            > "$RUNNER_TEMP/commit-formula-response.json"
+            Formula/astrid.rb \
+            state/channel-stable.toml \
+            state/channel-stable.toml.sigstore.json \
+            > "$RUNNER_TEMP/commit-stable.json"
+          gh api graphql --input "$RUNNER_TEMP/commit-stable.json" \
+            > "$RUNNER_TEMP/commit-stable-response.json"
           oid=$(jq -er '
             .data.createCommitOnBranch.commit
             | select(.signature.isValid == true and .signature.wasSignedByGitHub == true)
             | .oid
-          ' "$RUNNER_TEMP/commit-formula-response.json")
+          ' "$RUNNER_TEMP/commit-stable-response.json")
           url=$(jq -er '.data.createCommitOnBranch.commit.url' \
-            "$RUNNER_TEMP/commit-formula-response.json")
+            "$RUNNER_TEMP/commit-stable-response.json")
           echo "sha=$oid" >> "$GITHUB_OUTPUT"
           echo "Published verified commit $oid: $url"
 
       - name: Validate published main
-        if: steps.formula.outputs.changed == 'true'
+        if: steps.stable.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ steps.publish.outputs.sha }}

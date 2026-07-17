@@ -16,6 +16,12 @@ brew update
 brew upgrade astrid
 ```
 
+The tap follows Astrid's signed `stable` channel. A scheduled updater and an
+input-free manual workflow authenticate the channel pointer, reject replayed or
+equivocating generations, and verify the release's signed Homebrew checksums
+before changing the formula. Publishing a release by itself does not update the
+tap.
+
 ## What gets installed
 
 | Binary | Purpose |

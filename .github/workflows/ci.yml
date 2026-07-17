@@ -24,6 +24,10 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
       - name: Bind dispatched validation to its commit
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -46,6 +50,9 @@ jobs:
 
       - name: Test signed commit payload
         run: test/test-create-signed-commit-payload.sh
+
+      - name: Test stable channel resolution
+        run: python3 -m unittest discover -s test -p 'test_*.py'
 
       - name: Validate generated formula with Homebrew
         run: test/test-generated-formula-homebrew.sh
